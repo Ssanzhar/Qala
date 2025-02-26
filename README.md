@@ -3,6 +3,7 @@
 ## Introduction
 
 **Qala** is a project developed by the **ss** team. This repository contains the source code and documentation for the project. 
+[Project's documentation](https://docs.google.com/document/d/1nZB1fy8Al20xBNipCXVEs4ODLpCNnzxJ/edit?usp=sharing&ouid=113911636319581141972&rtpof=true&sd=true)_
 
 ## Project Structure
 
