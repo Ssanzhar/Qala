@@ -143,87 +143,183 @@ class SmartSearchEventView(APIView):
             return Response({"error": "Query parameter is required."},
                             status=status.HTTP_400_BAD_REQUEST)
         try:
-            # generated initial filter
             first_response = client.responses.create(
                 model="gpt-4o",
                 instructions=self.get_system_prompt(),
                 input=user_query
             )
-            generated_filter_str = first_response.output_text.strip()
+            generated_response_str = first_response.output_text.strip()
+            
             try:
-                filter_dict = json.loads(generated_filter_str)
+                search_config = json.loads(generated_response_str)
+                filter_dict = search_config.get("filters", {})
+                sort_instructions = search_config.get("sort_by", [])
+                keywords = search_config.get("keywords", [])
+                
             except json.JSONDecodeError:
+                corrected_response = client.responses.create(
+                    model="gpt-4o",
+                    instructions="Fix this malformed JSON to be a valid search configuration with 'filters', 'sort_by', and 'keywords' fields:",
+                    input=generated_response_str
+                )
+                corrected_config_str = corrected_response.output_text.strip()
+                try:
+                    search_config = json.loads(corrected_config_str)
+                    filter_dict = search_config.get("filters", {})
+                    sort_instructions = search_config.get("sort_by", [])
+                    keywords = search_config.get("keywords", [])
+                except json.JSONDecodeError:
+                    return Response({
+                        "error": "Failed to parse search configuration.",
+                        "generated": generated_response_str,
+                        "attempted_correction": corrected_config_str
+                    }, status=status.HTTP_400_BAD_REQUEST)
+            
+            sanitized_filter = self.sanitize_filter(filter_dict, user_query)
+            
+            if "error" in sanitized_filter:
                 return Response({
-                    "error": "Failed to parse initial generated filter logic.",
-                    "generated": generated_filter_str
+                    "error": sanitized_filter["error"]
                 }, status=status.HTTP_400_BAD_REQUEST)
             
-            # validation and filtering using second agent
-            validator_response = client.responses.create(
-                model="gpt-4o",
-                instructions=self.get_validator_system_prompt(),
-                input=f"User query: {user_query}\nInitial filter: {generated_filter_str}"
-            )
-            validated_filter_str = validator_response.output_text.strip()
-            try:
-                validated_filter_dict = json.loads(validated_filter_str)
-            except json.JSONDecodeError:
-                return Response({
-                    "error": "Failed to parse validated filter logic.",
-                    "generated": validated_filter_str
-                }, status=status.HTTP_400_BAD_REQUEST)
+            events = Event.objects.filter(**sanitized_filter)
             
-            # checking unsafe operations
-            if "error" in validated_filter_dict:
-                return Response({
-                    "error": validated_filter_dict["error"]
-                }, status=status.HTTP_400_BAD_REQUEST)
+            if sort_instructions:
+                events = events.order_by(*sort_instructions)
             
-        
-            conversation_data = {
-                "initial_filter": filter_dict,
-                "validated_filter": validated_filter_dict,
-                "conversation": [
-                    {"agent": "generator", "response": generated_filter_str},
-                    {"agent": "validator", "response": validated_filter_str}
-                ]
-            }
+            serialized_events = EventSerializer(events, many=True, context={"request": request}).data
             
-            # execution
-            events = Event.objects.filter(**validated_filter_dict)
-            serializer = EventSerializer(events, many=True, context={"request": request})
+            if keywords:
+                scored_events = self.score_events_by_relevance(serialized_events, keywords, user_query)
+                sorted_events = sorted(scored_events, key=lambda x: x['relevance_score'], reverse=True)
+            else:
+                sorted_events = [{'event': event, 'relevance_score': 0} for event in serialized_events]
+            
+            result_events = [item['event'] for item in sorted_events]
             
             return Response({
                 "user_query": user_query,
-                "initial_filter": filter_dict,
-                "validated_filter": validated_filter_dict,
-                "results": serializer.data
+                "filter_applied": sanitized_filter,
+                "sort_applied": sort_instructions,
+                "keywords": keywords,
+                "results": result_events,
+                "result_count": len(result_events)
             }, status=status.HTTP_200_OK)
             
         except Exception as e:
             return Response({"error": str(e)},
                             status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    def score_events_by_relevance(self, events, keywords, original_query):
+        scored_events = []
+        
+        for event in events:
+            score = 0
+            event_text = f"{event.get('title', '')} {event.get('description', '')}"
+            event_text = event_text.lower()
+            
+            for keyword in keywords:
+                keyword = keyword.lower()
+                occurrences = event_text.count(keyword)
+                score += occurrences * 2
+                
+                if keyword in event.get('title', '').lower():
+                    score += 5
+            
+            pos_votes = event.get('pos_votes', 0)
+            score += min(pos_votes / 10, 3)
+            
+            if 'created_at' in event:
+                try:
+                    from datetime import datetime
+                    created_date = datetime.fromisoformat(event['created_at'].replace('Z', '+00:00'))
+                    days_old = (datetime.now() - created_date).days
+                    recency_boost = max(0, 2 - (days_old / 30))
+                    score += recency_boost
+                except (ValueError, TypeError):
+                    pass
+            
+            scored_events.append({
+                'event': event,
+                'relevance_score': score
+            })
+        
+        return scored_events
+    
+    def sanitize_filter(self, filter_dict, user_query):
+        allowed_fields = {
+            'id', 'title', 'description', 'city_id', 'pos_votes', 'neg_votes', 
+            'created_at', 'created_by', 'created_by_id'
+        }
+        allowed_lookups = {'__exact', '__contains', '__icontains', '__gt', '__gte', '__lt', '__lte', 
+                          '__startswith', '__istartswith', '__endswith', '__iendswith'}
+        
+        harmful_terms = ['delete', 'drop', 'remove', 'destroy', 'alter', 'update', 'modify']
+        if any(term in user_query.lower() for term in harmful_terms):
+            return {"error": "Potentially harmful operation detected in query"}
+        
+        sanitized_filter = {}
+        for key, value in filter_dict.items():
+            base_field = key.split('__')[0]
+            
+            if base_field not in allowed_fields:
+                continue
+            
+            is_allowed = True
+            for part in key.split('__')[1:]:
+                if f"__{part}" not in allowed_lookups:
+                    is_allowed = False
+                    break
+            
+            if is_allowed:
+                sanitized_filter[key] = value
+        
+        if 'city_id' in filter_dict and isinstance(filter_dict['city_id'], str):
+            city_mapping = {
+                'astana': 1, 'almaty': 2, 'aktau': 3, 'aktobe': 4, 'shymkent': 5,
+                'karaganda': 6, 'pavlodar': 7, 'ust-kamenogorsk': 8, 'semey': 9, 'taraz': 10
+            }
+            city_name = filter_dict['city_id'].lower()
+            if city_name in city_mapping:
+                sanitized_filter['city_id'] = city_mapping[city_name]
+        
+        return sanitized_filter if sanitized_filter else {"error": "No valid filter parameters found"}
             
     def get_system_prompt(self):
         return (
-            "You are a helpful assistant that converts a natural-language query into a Django ORM filter dictionary for filtering Event records. "
-            "The Event model has fields such as id, title, description, city_id, pos_votes, neg_votes, created_by, created_at, etc. "
-            "Events are associated with cities. Use the following city mapping to determine the correct 'city_id': "
-            "Astana: 1, Almaty: 2, Aktau: 3, Aktobe: 4, Shymkent: 5, Karaganda: 6, Pavlodar: 7, Ust-Kamenogorsk: 8, Semey: 9, Taraz: 10. "
-            "Return only the filter dictionary as a valid JSON object without any extra text. "
-            "For example, if the query is 'Show events in Shymkent with more than 10 positive votes', return: "
-            '{"city_id": 5, "pos_votes__gt": 10}'
-        )
-    
-    def get_validator_system_prompt(self):
-        return (
-            "You are a validation agent tasked with reviewing and refining a Django ORM filter dictionary for Event model queries. "
-            "Given a user query and an initial filter dictionary, verify that the filter is correct and safe. Ensure that the filter: "
-            "1. Uses valid fields of the Event model; "
-            "2. Correctly maps city names to their IDs using this mapping: Astana: 1, Almaty: 2, Aktau: 3, Aktobe: 4, Shymkent: 5, "
-            "Karaganda: 6, Pavlodar: 7, Ust-Kamenogorsk: 8, Semey: 9, Taraz: 10; and "
-            "3. Does not include any dangerous or destructive operations such as 'delete', 'drop', 'alter', etc. "
-            "If you detect any attempt to execute harmful operations (for example, if the query includes phrases like 'delete the table'), "
-            "return a JSON object with an 'error' key, e.g., {'error': 'Unsafe operation detected'}; otherwise, return the validated JSON filter dictionary as is. "
-            "Return only the filter dictionary as a valid JSON object."
+            "You are a specialized assistant that converts natural language queries into search configurations for the Event model. "
+            "Your task is to analyze the user's query and return a JSON object containing three components: "
+            "1. 'filters': Django ORM filter dictionary for initial filtering "
+            "2. 'sort_by': List of fields to sort by (with - prefix for descending) "
+            "3. 'keywords': List of important keywords for relevance scoring "
+            "\n\nEvent model fields:"
+            "\n- id: Integer (primary key)"
+            "\n- title: String (event title)"
+            "\n- description: Text (event description)"
+            "\n- city_id: Integer (foreign key to City model)"
+            "\n- pos_votes: Integer (positive votes count)"
+            "\n- neg_votes: Integer (negative votes count)"
+            "\n- created_by: ForeignKey to User model"
+            "\n- created_at: DateTime"
+            "\n\nCity ID mapping:"
+            "\n- Astana: 1, Almaty: 2, Aktau: 3, Aktobe: 4, Shymkent: 5"
+            "\n- Karaganda: 6, Pavlodar: 7, Ust-Kamenogorsk: 8, Semey: 9, Taraz: 10"
+            "\n\nCommon filter operations:"
+            "\n- Exact match: field=value"
+            "\n- Greater than: field__gt=value"
+            "\n- Less than: field__lt=value"
+            "\n- Contains (case-sensitive): field__contains=value"
+            "\n- Contains (case-insensitive): field__icontains=value"
+            "\n\nSort fields for 'sort_by':"
+            "\n- 'created_at' (newest first: '-created_at')"
+            "\n- 'pos_votes' (most votes first: '-pos_votes')"
+            "\n- 'neg_votes' (least negative votes first: 'neg_votes')"
+            "\n\nImportant: Return ONLY the JSON without any explanation or additional text."
+            "\n\nExamples:"
+            "\nQuery: 'Events in Almaty with more than 5 positive votes'"
+            "\nOutput: {\"filters\": {\"city_id\": 2, \"pos_votes__gt\": 5}, \"sort_by\": [\"-pos_votes\"], \"keywords\": []}"
+            "\n\nQuery: 'Find the most popular events related to music in Astana'"
+            "\nOutput: {\"filters\": {\"city_id\": 1, \"title__icontains\": \"music\"}, \"sort_by\": [\"-pos_votes\"], \"keywords\": [\"music\", \"concert\", \"band\", \"performance\"]}"
+            "\n\nQuery: 'The most relevant problems related to air pollution'"
+            "\nOutput: {\"filters\": {\"title__icontains\": \"pollution\"}, \"sort_by\": [\"-pos_votes\"], \"keywords\": [\"air pollution\", \"pollution\", \"air quality\", \"environment\", \"health\"]}"
         )
