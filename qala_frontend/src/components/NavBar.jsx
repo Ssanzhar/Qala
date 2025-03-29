@@ -20,7 +20,16 @@ import { theme } from "./theme";
 const NavBar = () => {
   const { city, setCity } = useContext(GlobalContext);
   const { access, logout } = useAuth();
-  const cities = ["Almaty", "Astana", "Shymkent", "Karaganda", "Aktobe", "Ust-Kamenogorsk", "Semey", "Taraz"];
+  const cities = [
+    "Almaty",
+    "Astana",
+    "Shymkent",
+    "Karaganda",
+    "Aktobe",
+    "Ust-Kamenogorsk",
+    "Semey",
+    "Taraz",
+  ];
 
   const handleCity = (e) => {
     setCity(e.target.value);
@@ -63,6 +72,9 @@ const NavBar = () => {
             </FormControl>
             <Button component={Link} to="/map" color="inherit">
               Map
+            </Button>
+            <Button component={Link} to="/events" color="inherit">
+              Events
             </Button>
             {access ? (
               <>
