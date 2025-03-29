@@ -8,8 +8,11 @@ import {
   Paper,
   ThemeProvider,
   CssBaseline,
+  Checkbox,
+  FormControlLabel,
 } from "@mui/material";
 import { theme } from "../components/theme";
+import { useNavigate } from "react-router-dom";
 
 const SignupPage = () => {
   const [formData, setFormData] = useState({
@@ -18,6 +21,7 @@ const SignupPage = () => {
     password: "",
   });
   const [errors, setErrors] = useState({});
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -71,77 +75,95 @@ const SignupPage = () => {
   };
 
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <Container component="main" maxWidth="xs">
-        <Paper elevation={3} sx={{ mt: 8, p: 4 }}>
-          <Typography component="h1" variant="h5" align="center">
-            Sign Up
-          </Typography>
-          <Box
-            component="form"
-            onSubmit={handleSubmit}
-            noValidate
-            sx={{ mt: 1 }}
+    <Container maxWidth="xs">
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          gap: 2,
+          backgroundColor: "#ffffff",
+          padding: 4,
+          borderRadius: 3,
+          boxShadow: 3,
+          marginTop: 7,
+        }}
+      >
+        <Typography variant="h5" fontWeight={600} textAlign="center">
+          Sign Up
+        </Typography>
+        <TextField
+          margin="normal"
+          autoFocus
+          required
+          fullWidth
+          id="email"
+          label="Email Address"
+          name="email"
+          autoComplete="email"
+          value={formData.email}
+          onChange={handleChange}
+          error={!!errors.email}
+          helperText={errors.email}
+        />
+        <TextField
+          margin="normal"
+          required
+          fullWidth
+          id="username"
+          label="Username"
+          name="username"
+          autoComplete="username"
+          value={formData.username}
+          onChange={handleChange}
+          error={!!errors.username}
+          helperText={errors.username}
+          sx={{ marginTop: -1 }}
+        />
+        <TextField
+          margin="normal"
+          required
+          fullWidth
+          name="password"
+          label="Password"
+          type="password"
+          id="password"
+          autoComplete="current-password"
+          value={formData.password}
+          onChange={handleChange}
+          error={!!errors.password}
+          helperText={errors.password}
+          sx={{ marginTop: -1 }}
+        />
+        <FormControlLabel control={<Checkbox />} label="Remember me" />
+        <Typography
+          variant="body2"
+          color="primary"
+          sx={{ cursor: "pointer", textAlign: "right" }}
+        >
+          Forgot password?
+        </Typography>
+        <Button
+          variant="contained"
+          type="submit"
+          fullWidth
+          sx={{ backgroundColor: "#151717", color: "white" }}
+          onClick={handleSubmit}
+        >
+          Sign In
+        </Button>
+        <Typography variant="body2" textAlign="center">
+          Have an account?{" "}
+          <span
+            style={{ color: "#2d79f3", cursor: "pointer" }}
+            onClick={() => {
+              navigate("/login");
+            }}
           >
-            <TextField
-              margin="normal"
-              required
-              fullWidth
-              id="username"
-              label="Username"
-              name="username"
-              autoComplete="username"
-              autoFocus
-              value={formData.username}
-              onChange={handleChange}
-              error={!!errors.username}
-              helperText={errors.username}
-            />
-            <TextField
-              margin="normal"
-              required
-              fullWidth
-              id="email"
-              label="Email Address"
-              name="email"
-              autoComplete="email"
-              value={formData.email}
-              onChange={handleChange}
-              error={!!errors.email}
-              helperText={errors.email}
-            />
-            <TextField
-              margin="normal"
-              required
-              fullWidth
-              name="password"
-              label="Password"
-              type="password"
-              id="password"
-              autoComplete="current-password"
-              value={formData.password}
-              onChange={handleChange}
-              error={!!errors.password}
-              helperText={errors.password}
-            />
-            <Button
-              type="submit"
-              fullWidth
-              variant="contained"
-              sx={{ mt: 3, mb: 2 }}
-            >
-              Sign up
-            </Button>
-            {errors.general && (
-              <Typography color="error" align="center">
-                {errors.general}
-              </Typography>
-            )}
-          </Box>
-        </Paper>
-      </Container>
-    </ThemeProvider>
+            Sign In
+          </span>
+        </Typography>
+      </Box>
+    </Container>
   );
 };
 
