@@ -12,14 +12,16 @@ import {
   ThemeProvider,
   CssBaseline,
 } from "@mui/material";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { GlobalContext } from "../context/GlobalContext";
 import { useAuth } from "../context/AuthProvider";
 import { theme } from "./theme";
+import logo from "../images_test/qala_b.png";
 
 const NavBar = () => {
   const { city, setCity } = useContext(GlobalContext);
   const { access, logout } = useAuth();
+  const navigate = useNavigate();
   const cities = [
     "Almaty",
     "Astana",
@@ -40,57 +42,123 @@ const NavBar = () => {
       <CssBaseline />
       <AppBar
         position="static"
-        sx={{ bgcolor: "#F0FDFA", color: "#066B7D" }}
+        sx={{
+          height: "10vh",
+          justifyContent: "center",
+          bgcolor: "background.default",
+        }}
         elevation={1}
       >
-        <Toolbar sx={{ marginTop: "0.7vh" }}>
+        <Toolbar>
+          {/* <Box
+            component="img"
+            src={logo}
+            sx={{ height: "90px" }}
+            onClick={() => {
+              navigate("/");
+            }}
+          ></Box> */}
           <Typography
             variant="h6"
             component={Link}
             to="/"
             sx={{
               textDecoration: "none",
-              color: "inherit",
               flexGrow: 1,
+              color: "text.primary",
+              marginLeft: 10,
+              fontSize: 35,
+              fontWeight: 600,
             }}
           >
             Qala
           </Typography>
           <Box sx={{ display: "flex", gap: 2 }}>
-            <FormControl sx={{ m: 1, minWidth: 80 }}>
-              <InputLabel id="select">City</InputLabel>
-              <Select id="select" value={city} onChange={handleCity}>
-                <MenuItem value="">
+            <FormControl sx={{ minWidth: 80 }}>
+              <InputLabel id="select" sx={{ color: "text.primary" }}>
+                City
+              </InputLabel>
+              <Select
+                id="select"
+                value={city}
+                onChange={handleCity}
+                sx={{
+                  color: "text.primary",
+                  "& .MuiOutlinedInput-notchedOutline": { border: "none" },
+                  "&:hover .MuiOutlinedInput-notchedOutline": {
+                    border: "none",
+                  },
+                  "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+                    border: "none",
+                  },
+                }}
+                MenuProps={{
+                  PaperProps: {
+                    sx: {
+                      bgcolor: "primary",
+                      color: "text.secondary",
+                    },
+                  },
+                }}
+              >
+                <MenuItem value="" sx={{ color: "text.secondary" }}>
                   <em>None</em>
                 </MenuItem>
                 {cities.map((el) => (
-                  <MenuItem value={el} key={el}>
+                  <MenuItem
+                    value={el}
+                    key={el}
+                    sx={{ color: "text.secondary" }}
+                  >
                     {el}
                   </MenuItem>
                 ))}
               </Select>
             </FormControl>
-            <Button component={Link} to="/map" color="inherit">
+            <Button
+              component={Link}
+              to="/map"
+              sx={{ color: "text.primary", textTransform: "none" }}
+            >
               Map
             </Button>
-            <Button component={Link} to="/events" color="inherit">
+            <Button
+              component={Link}
+              to="/events"
+              sx={{ color: "text.primary", textTransform: "none" }}
+            >
               Events
             </Button>
             {access ? (
               <>
-                <Button component={Link} to="/profile" color="inherit">
+                <Button
+                  component={Link}
+                  to="/profile"
+                  sx={{ color: "text.primary" }}
+                >
                   Profile
                 </Button>
-                <Button color="inherit" onClick={logout}>
+                <Button
+                  sx={{ color: "text.primary", textTransform: "none" }}
+                  onClick={logout}
+                >
                   Log Out
                 </Button>
               </>
             ) : (
               <>
-                <Button component={Link} to="/login" color="inherit">
+                <Button
+                  component={Link}
+                  to="/login"
+                  sx={{ color: "text.primary", textTransform: "none" }}
+                >
                   Log In
                 </Button>
-                <Button component={Link} to="/signup" color="inherit">
+                <Button
+                  component={Link}
+                  to="/signup"
+                  sx={{ color: "text.primary", textTransform: "none" }}
+                >
                   Sign Up
                 </Button>
               </>

@@ -17,6 +17,7 @@ import { GlobalContext } from "../context/GlobalContext";
 import { useAuth } from "../context/AuthProvider";
 import { data } from "../data/data";
 import SearchIcon from "@mui/icons-material/Search";
+import Input from "../components/Input";
 
 export default function Events() {
   const { city } = useContext(GlobalContext);
@@ -116,8 +117,23 @@ export default function Events() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Container sx={{ mt: 2, ml: 5 }}>
-        <Box sx={{ p: 2, display: "flex", gap: 2 }}>
+      <Container
+        sx={{
+          mt: 2,
+          ml: 5,
+          height: "85vh",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+        }}
+      >
+        <Box
+          sx={{
+            p: 2,
+            display: "flex",
+            gap: 2,
+          }}
+        >
           <Paper
             component="form"
             sx={{
@@ -125,7 +141,6 @@ export default function Events() {
               display: "flex",
               alignItems: "center",
               width: "100%",
-              maxWidth: 600,
             }}
           >
             <SearchIcon
@@ -140,15 +155,15 @@ export default function Events() {
               onChange={handleSearchChange}
             />
           </Paper>
-          <FormControl sx={{ minWidth: 200, mb: 2 }}>
+          {/* <FormControl sx={{ minWidth: 200, mb: 2 }}>
             <InputLabel>Sort by</InputLabel>
             <Select value={sortBy} onChange={handleSortChange} label="Sort by">
               <MenuItem value="date">Date</MenuItem>
               <MenuItem value="popularity">Popularity</MenuItem>
             </Select>
-          </FormControl>
+          </FormControl> */}
         </Box>
-        <Box>
+        {/* <Box>
           {filteredEvents.length > 0 ? (
             filteredEvents.map((event) => (
               <EventCard
@@ -168,7 +183,7 @@ export default function Events() {
           ) : (
             <p>No events found for the selected city.</p>
           )}
-        </Box>
+        </Box> */}
       </Container>
     </ThemeProvider>
   );

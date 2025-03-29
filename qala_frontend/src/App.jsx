@@ -4,10 +4,11 @@ import NavBar from "./components/NavBar";
 import Maps from "./routes/Map";
 import SignupPage from "./routes/Signup";
 import LoginPage from "./routes/Login";
-import { Box } from "@mui/material";
+import { Box, CssBaseline, ThemeProvider } from "@mui/material";
 import { AuthProvider } from "./context/AuthProvider";
 import AccountDashboard from "./routes/Profile";
 import Events from "./routes/Events";
+import { theme } from "./components/theme";
 
 function App() {
   const routes = useRoutes([
@@ -38,12 +39,21 @@ function App() {
   ]);
 
   return (
-    <Box>
-      <AuthProvider>
-        <NavBar />
-        {routes}
-      </AuthProvider>
-    </Box>
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <Box
+        sx={{
+          height: "100vh",
+          width: "100%",
+          bgcolor: "background.primary",
+        }}
+      >
+        <AuthProvider>
+          <NavBar />
+          {routes}
+        </AuthProvider>
+      </Box>
+    </ThemeProvider>
   );
 }
 
