@@ -205,7 +205,7 @@ const MapWithForm = () => {
         <MapContainer
           center={[43.222, 76.851]}
           zoom={13}
-          style={{ height: "93.6vh", width: "202vh" }}
+          style={{ height: "89.7vh", width: "202vh" }}
         >
           <TileLayer
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -233,17 +233,13 @@ const MapWithForm = () => {
                 )}
                 <Box sx={{ mt: 2, display: "flex", alignItems: "center" }}>
                   <Typography variant="h6">Votes: </Typography>
-                  <IconButton
-                    aria-label="like"
-                  >
+                  <IconButton aria-label="like">
                     <ThumbUpIcon />
                   </IconButton>
                   <Typography variant="body2" color="text.secondary">
                     {marker.pos_votes}
                   </Typography>
-                  <IconButton
-                    aria-label="dislike"
-                  >
+                  <IconButton aria-label="dislike">
                     <ThumbDownIcon />
                   </IconButton>
                   <Typography variant="body2" color="text.secondary">

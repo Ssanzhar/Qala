@@ -1,164 +1,206 @@
-// import { Container, CssBaseline, ThemeProvider, FormControl, InputLabel, Select, MenuItem, Paper, InputBase, Box } from "@mui/material";
-// import EventCard from "../components/EventCard";
-// import { theme } from "../components/theme";
-// import { useContext, useEffect, useState } from "react";
-// import { GlobalContext } from "../context/GlobalContext";
-// import { useAuth } from "../context/AuthProvider";
-// import { data } from "../data/data";
-// import SearchIcon from "@mui/icons-material/Search";
-// import styled from "sty";
+import {
+  Box,
+  Button,
+  Card,
+  Container,
+  CssBaseline,
+  Grid,
+  IconButton,
+  Paper,
+  ThemeProvider,
+  Typography,
+} from "@mui/material";
+import LightbulbOutlinedIcon from "@mui/icons-material/LightbulbOutlined";
+import ShareOutlinedIcon from "@mui/icons-material/ShareOutlined";
+import VerifiedUserOutlinedIcon from "@mui/icons-material/VerifiedUserOutlined";
+import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
+import RadioButtonCheckedIcon from "@mui/icons-material/RadioButtonChecked";
+import { theme } from "../components/theme";
+import { useNavigate } from "react-router-dom";
+import BookIcon from "@mui/icons-material/Book";
+import BusinessCenterIcon from "@mui/icons-material/BusinessCenter";
+import ImageIcon from "@mui/icons-material/Image";
+import CheckIcon from "@mui/icons-material/Check";
 
-// export default function Home() {
-//   const { city } = useContext(GlobalContext);
-//   const { access } = useAuth();
-//   const [events, setEvents] = useState([]);
-//   const [sortBy, setSortBy] = useState("date");
-//   const [searchQuery, setSearchQuery] = useState("");
-
-//   const handleSortChange = (event) => {
-//     setSortBy(event.target.value);
-//     setEvents((prevEvents) =>
-//       [...prevEvents].sort((a, b) => {
-//         if (event.target.value === "date") {
-//           return new Date(a.date) - new Date(b.date);
-//         } else if (event.target.value === "popularity") {
-//           return b.pos_votes - a.pos_votes;
-//         }
-//         return 0;
-//       })
-//     );
-//   };
-
-//   const handleSearchChange = (event) => {
-//     setSearchQuery(event.target.value.toLowerCase());
-//   };
-
-//   const getEventsByDate = async () => {
-//     try {
-//       const response = await fetch(
-//         `http://127.0.0.1:8000/api/filter-by-city/?city_id=${
-//           city ? data[city].id : 2
-//         }`,
-//         {
-//           method: "GET",
-//           headers: { Authorization: `Bearer ${access}` },
-//         }
-//       );
-
-//       if (!response.ok) {
-//         throw new Error(`Failed to fetch events: ${response.statusText}`);
-//       }
-
-//       return await response.json();
-//     } catch (error) {
-//       console.error(error);
-//       return [];
-//     }
-//   };
-
-//   const getEventsByPopularity = async () => {
-//     try {
-//       const response = await fetch(`http://127.0.0.1:8000/api/sorted-by-votes/?city_id=${
-//         city ? data[city].id : 2
-//       }`,
-//         {
-//           method: "GET",
-//           headers: {
-//             Authorization: `Bearer ${access}`,
-//           }
-//         }
-//       );
-
-//       const result = await response.json();
-
-//       return result;
-//     } catch (error) {
-//       console.error(error);
-//       return [];
-//     }
-//   };
-
-//   useEffect(() => {
-//     const fetchEventsByDate = async () => {
-//       const eventsData = await getEventsByDate();
-//       setEvents(eventsData);
-//     };
-
-//     const fetchEventsByPopularity = async () => {
-//       const eventsData = await getEventsByPopularity();
-//       setEvents(eventsData);
-//     };
-
-//     if (sortBy === "date") {
-//       fetchEventsByDate();
-//     } else {
-//       fetchEventsByPopularity();
-//     }
-//   }, [access, city, data, sortBy]);
-
-//   const filteredEvents = events.filter(event =>
-//     event.name.toLowerCase().includes(searchQuery) ||
-//     event.description.toLowerCase().includes(searchQuery)
-//   );
-
-//   return (
-//     <ThemeProvider theme={theme}>
-//       <CssBaseline />
-//       <Container sx={{ mt: 2, ml: 5 }}>
-//         <Box sx={{ p: 2, display: "flex", gap: 2 }}>
-//           <Paper
-//             component="form"
-//             sx={{
-//               p: "2px 4px",
-//               display: "flex",
-//               alignItems: "center",
-//               width: "100%",
-//               maxWidth: 600,
-//             }}
-//           >
-//             <SearchIcon sx={{ p: 1, color: "action.active" }} fontSize="large" />
-//             <InputBase
-//               sx={{ ml: 1, flex: 1 }}
-//               placeholder="Search events..."
-//               inputProps={{ "aria-label": "search events" }}
-//               value={searchQuery}
-//               onChange={handleSearchChange}
-//             />
-//           </Paper>
-//           <FormControl sx={{ minWidth: 200, mb: 2 }}>
-//             <InputLabel>Sort by</InputLabel>
-//             <Select value={sortBy} onChange={handleSortChange} label="Sort by">
-//               <MenuItem value="date">Date</MenuItem>
-//               <MenuItem value="popularity">Popularity</MenuItem>
-//             </Select>
-//           </FormControl>
-//         </Box>
-//         <Box>
-//           {filteredEvents.length > 0 ? (
-//             filteredEvents.map((event) => (
-//               <EventCard
-//                 key={event.id}
-//                 id={event.id}
-//                 title={event.name}
-//                 date={event.date}
-//                 description={event.description}
-//                 image={event.image}
-//                 latitude={event.latitude}
-//                 longitude={event.longitude}
-//                 pvotes={event.pos_votes}
-//                 nvotes={event.neg_votes}
-//                 uservote={event.user_vote}
-//               />
-//             ))
-//           ) : (
-//             <p>No events found for the selected city.</p>
-//           )}
-//         </Box>
-//       </Container>
-//     </ThemeProvider>
-//   );
-// }
+const FeatureItem = ({ icon, text }) => (
+  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+    {icon}
+    <Typography variant="body1" color="text.primary">
+      {text}
+    </Typography>
+  </Box>
+);
 
 export default function Home() {
-  return <div>Homepage</div>;
+  const navigate = useNavigate();
+
+  return (
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <Box sx={{ bgcolor: "background.primary", minHeight: "100vh" }}>
+        <Container maxWidth="lg" sx={{ mt: 6, mb: 8 }}>
+          <Paper
+            elevation={3}
+            sx={{
+              borderRadius: 4,
+              py: 8,
+              px: 4,
+              textAlign: "center",
+              bgcolor: "white",
+            }}
+          >
+            <Typography
+              variant="h2"
+              component="h1"
+              sx={{
+                fontWeight: "bold",
+                mb: 2,
+                fontSize: { xs: "2.5rem", md: "3.5rem" },
+                maxWidth: "800px",
+                mx: "auto",
+              }}
+            >
+              &#10024;Solve pressing issues of your city!
+            </Typography>
+
+            <Typography
+              variant="h6"
+              color="text.primary"
+              sx={{
+                mb: 4,
+                maxWidth: "700px",
+                mx: "auto",
+                lineHeight: 1.6,
+              }}
+            >
+              &#128205;Report the problems of you city for officials to resolve.
+            </Typography>
+
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "center",
+                gap: 2,
+                mb: 6,
+                flexWrap: "wrap",
+              }}
+            >
+              <Button
+                variant="contained"
+                size="large"
+                sx={{
+                  bgcolor: "black",
+                  "&:hover": { bgcolor: "#333" },
+                  borderRadius: "4px",
+                  px: 3,
+                  py: 1.5,
+                  textTransform: "none",
+                }}
+                onClick={() => {
+                  navigate("/signup");
+                }}
+              >
+                Sign Up
+              </Button>
+              <Button
+                variant="outlined"
+                size="large"
+                sx={{
+                  borderColor: "#e0e0e0",
+                  color: "text.primary",
+                  "&:hover": { borderColor: "#bdbdbd" },
+                  borderRadius: "4px",
+                  px: 3,
+                  py: 1.5,
+                  textTransform: "none",
+                }}
+                onClick={() => {
+                  navigate("/login");
+                }}
+              >
+                Sign In
+              </Button>
+            </Box>
+          </Paper>
+        </Container>
+        <Container maxWidth="lg" sx={{ mb: 8 }}>
+          <Grid container spacing={4}>
+            <Grid item xs={12} md={4}>
+              <Card sx={{ p: 4, height: "100%", borderRadius: 4 }}>
+                <Box
+                  sx={{
+                    display: "flex",
+                    flexDirection: "column",
+                    height: "100%",
+                  }}
+                >
+                  <h1>&#128498;</h1>
+                  <Typography
+                    variant="h6"
+                    component="h2"
+                    sx={{ fontWeight: "bold", mb: 1 }}
+                  >
+                    Report Accidents & Issues
+                  </Typography>
+                  <Typography variant="body1" color="text.primary">
+                    &#128221;Add a title, description, and images to provide
+                    details.
+                  </Typography>
+                </Box>
+              </Card>
+            </Grid>
+
+            <Grid item xs={12} md={4}>
+              <Card sx={{ p: 4, height: "100%", borderRadius: 4 }}>
+                <Box
+                  sx={{
+                    display: "flex",
+                    flexDirection: "column",
+                    height: "100%",
+                  }}
+                >
+                  <h1>&#128101;</h1>
+                  <Typography
+                    variant="h6"
+                    component="h2"
+                    sx={{ fontWeight: "bold", mb: 1 }}
+                  >
+                    Community Engagement
+                  </Typography>
+                  <Typography variant="body1" color="text.primary">
+                    &#128077;Vote on issues to highlight importance.
+                  </Typography>
+                </Box>
+              </Card>
+            </Grid>
+
+            <Grid item xs={12} md={4}>
+              <Card sx={{ p: 4, height: "100%", borderRadius: 4 }}>
+                <Box
+                  sx={{
+                    display: "flex",
+                    flexDirection: "column",
+                    height: "100%",
+                  }}
+                >
+                  <h1>&#129309;</h1>
+                  <Typography
+                    variant="h6"
+                    component="h2"
+                    sx={{ fontWeight: "bold", mb: 1 }}
+                  >
+                    Verification & Trust
+                  </Typography>
+                  <Typography variant="body1" color="text.primary">
+                    &#127919;Verify achievements, certificates, and account
+                    status.
+                  </Typography>
+                </Box>
+              </Card>
+            </Grid>
+          </Grid>
+        </Container>
+      </Box>
+    </ThemeProvider>
+  );
 }

@@ -75,95 +75,138 @@ const SignupPage = () => {
   };
 
   return (
-    <Container maxWidth="xs">
-      <Box
-        sx={{
-          display: "flex",
-          flexDirection: "column",
-          gap: 2,
-          backgroundColor: "#ffffff",
-          padding: 4,
-          borderRadius: 3,
-          boxShadow: 3,
-          marginTop: 7,
-        }}
-      >
-        <Typography variant="h5" fontWeight={600} textAlign="center">
-          Sign Up
-        </Typography>
-        <TextField
-          margin="normal"
-          autoFocus
-          required
-          fullWidth
-          id="email"
-          label="Email Address"
-          name="email"
-          autoComplete="email"
-          value={formData.email}
-          onChange={handleChange}
-          error={!!errors.email}
-          helperText={errors.email}
-        />
-        <TextField
-          margin="normal"
-          required
-          fullWidth
-          id="username"
-          label="Username"
-          name="username"
-          autoComplete="username"
-          value={formData.username}
-          onChange={handleChange}
-          error={!!errors.username}
-          helperText={errors.username}
-          sx={{ marginTop: -1 }}
-        />
-        <TextField
-          margin="normal"
-          required
-          fullWidth
-          name="password"
-          label="Password"
-          type="password"
-          id="password"
-          autoComplete="current-password"
-          value={formData.password}
-          onChange={handleChange}
-          error={!!errors.password}
-          helperText={errors.password}
-          sx={{ marginTop: -1 }}
-        />
-        <FormControlLabel control={<Checkbox />} label="Remember me" />
-        <Typography
-          variant="body2"
-          color="primary"
-          sx={{ cursor: "pointer", textAlign: "right" }}
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <Container maxWidth="xs">
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 2,
+            color: "text.primary",
+            bgcolor: "background.default",
+            padding: 4,
+            borderRadius: 3,
+            boxShadow: 3,
+            marginTop: 7,
+          }}
         >
-          Forgot password?
-        </Typography>
-        <Button
-          variant="contained"
-          type="submit"
-          fullWidth
-          sx={{ backgroundColor: "#151717", color: "white" }}
-          onClick={handleSubmit}
-        >
-          Sign In
-        </Button>
-        <Typography variant="body2" textAlign="center">
-          Have an account?{" "}
-          <span
-            style={{ color: "#2d79f3", cursor: "pointer" }}
-            onClick={() => {
-              navigate("/login");
-            }}
+          <Typography
+            variant="h5"
+            fontWeight={600}
+            textAlign="center"
+            color="text.primary"
           >
-            Sign In
-          </span>
-        </Typography>
-      </Box>
-    </Container>
+            Sign Up
+          </Typography>
+          <TextField
+            margin="normal"
+            autoFocus
+            fullWidth
+            id="email"
+            label={<Typography color="text.primary">Email Address</Typography>}
+            name="email"
+            autoComplete="email"
+            value={formData.email}
+            onChange={handleChange}
+            error={!!errors.email}
+            helperText={errors.email}
+            sx={{
+              "& .MuiOutlinedInput-root": {
+                "& fieldset": { borderColor: "text.primary" },
+                "&:hover fieldset": { borderColor: "text.primary" },
+                "&.Mui-focused fieldset": { borderColor: "text.primary" },
+              },
+            }}
+          />
+          <TextField
+            margin="normal"
+            fullWidth
+            id="username"
+            label={<Typography color="text.primary">Username</Typography>}
+            name="username"
+            autoComplete="username"
+            value={formData.username}
+            onChange={handleChange}
+            error={!!errors.username}
+            helperText={errors.username}
+            sx={{
+              marginTop: -1,
+              "& .MuiOutlinedInput-root": {
+                "& fieldset": { borderColor: "text.primary" },
+                "&:hover fieldset": { borderColor: "text.primary" },
+                "&.Mui-focused fieldset": { borderColor: "text.primary" },
+              },
+            }}
+          />
+          <TextField
+            margin="normal"
+            fullWidth
+            name="password"
+            label={<Typography color="text.primary">Password</Typography>}
+            type="password"
+            id="password"
+            autoComplete="current-password"
+            value={formData.password}
+            onChange={handleChange}
+            error={!!errors.password}
+            helperText={errors.password}
+            sx={{
+              marginTop: -1,
+              "& .MuiOutlinedInput-root": {
+                "& fieldset": { borderColor: "text.primary" },
+                "&:hover fieldset": { borderColor: "text.primary" },
+                "&.Mui-focused fieldset": { borderColor: "text.primary" },
+              },
+            }}
+          />
+          <FormControlLabel
+            control={
+              <Checkbox
+                sx={{
+                  color: "text.primary",
+                  "&.Mui-checked": {
+                    color: "text.primary",
+                  },
+                }}
+              />
+            }
+            label={<Typography color="text.primary">Remember me</Typography>}
+          />
+          <Typography
+            variant="body2"
+            color="blue"
+            sx={{ cursor: "pointer", textAlign: "right", color: "#2d79f3" }}
+          >
+            Forgot password?
+          </Typography>
+          <Button
+            variant="contained"
+            type="submit"
+            fullWidth
+            sx={{
+              backgroundColor: "#151717",
+              color: "text.secondary",
+              textTransform: "none",
+            }}
+            onClick={handleSubmit}
+          >
+            Sign Up
+          </Button>
+          <Typography variant="body2" textAlign="center" color="text.primary">
+            Have an account?{" "}
+            <span
+              style={{ color: "#2d79f3", cursor: "pointer" }}
+              onClick={() => {
+                navigate("/login");
+              }}
+            >
+              Sign In
+            </span>
+          </Typography>
+        </Box>
+      </Container>
+    </ThemeProvider>
   );
 };
 
