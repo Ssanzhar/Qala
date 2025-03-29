@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import EventListCreateView, EventDetailView, VoteCreateOrUpdateView, SignupView, UserEventListView, EventListFilterByCityView, EventListSortedByVotesView, UserView
+from .views import EventListCreateView, EventDetailView, VoteCreateOrUpdateView, SignupView, UserEventListView, EventListFilterByCityView, EventListSortedByVotesView, UserView, SmartSearchEventView
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 urlpatterns = [
@@ -13,5 +13,8 @@ urlpatterns = [
     path('filter-by-city/', EventListFilterByCityView.as_view(), name='event-filter-city'),
     path('sorted-by-votes/', EventListSortedByVotesView.as_view(), name='event-sorted-votes'),
     path('user/', UserView.as_view(), name='user'),
+    path('smart-search/', SmartSearchEventView.as_view(), name='smart_search_event'),
+
+
 
 ]
