@@ -23,7 +23,7 @@ export default function Events() {
   const { city } = useContext(GlobalContext);
   const { access } = useAuth();
   const [events, setEvents] = useState([]);
-  const [sortBy, setSortBy] = useState("date");
+  const [sortBy, setSortBy] = useState("Smart Search");
   const [searchQuery, setSearchQuery] = useState("");
 
   const handleSortChange = (event) => {
@@ -121,10 +121,7 @@ export default function Events() {
         sx={{
           mt: 2,
           ml: 5,
-          height: "85vh",
           display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
         }}
       >
         <Box
@@ -132,6 +129,7 @@ export default function Events() {
             p: 2,
             display: "flex",
             gap: 2,
+            alignItems: "center",
           }}
         >
           <Paper
@@ -140,7 +138,8 @@ export default function Events() {
               p: "2px 4px",
               display: "flex",
               alignItems: "center",
-              width: "100%",
+              width: "50vh",
+              borderRadius: "16px",
             }}
           >
             <SearchIcon
@@ -155,13 +154,37 @@ export default function Events() {
               onChange={handleSearchChange}
             />
           </Paper>
-          {/* <FormControl sx={{ minWidth: 200, mb: 2 }}>
-            <InputLabel>Sort by</InputLabel>
+          <FormControl
+            sx={{
+              minWidth: 200,
+              height: "100%",
+              "& .MuiOutlinedInput-notchedOutline": {
+                borderColor: "black !important",
+              },
+              "&:hover .MuiOutlinedInput-notchedOutline": {
+                borderColor: "black !important",
+              },
+              "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+                borderColor: "black !important",
+              },
+            }}
+          >
+            <InputLabel
+              sx={{
+                color: "black !important",
+                "&.Mui-focused": {
+                  color: "black !important",
+                },
+              }}
+            >
+              Sort by
+            </InputLabel>
             <Select value={sortBy} onChange={handleSortChange} label="Sort by">
+              <MenuItem value="Smart Search">Smart Search</MenuItem>
               <MenuItem value="date">Date</MenuItem>
               <MenuItem value="popularity">Popularity</MenuItem>
             </Select>
-          </FormControl> */}
+          </FormControl>
         </Box>
         {/* <Box>
           {filteredEvents.length > 0 ? (
