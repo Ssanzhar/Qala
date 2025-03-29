@@ -5,7 +5,7 @@ from rest_framework.exceptions import PermissionDenied
 from django.contrib.auth.models import User
 from django.conf import settings
 import json
-import openai
+from openai import OpenAI
 
 from .models import Event, Vote
 from .serializers import EventSerializer, VoteSerializer, UserSerializer
@@ -132,7 +132,7 @@ class UserView(APIView):
 
 
 # Smart Search Implementation
-openai.api_key = settings.OPENAI_API_KEY
+client = OpenAI(api_key=settings.OPENAI_API_KEY)
 
 class SmartSearchEventView(APIView):
     permission_classes = [permissions.IsAuthenticated]
@@ -140,59 +140,90 @@ class SmartSearchEventView(APIView):
     def post(self, request, *args, **kwargs):
         user_query = request.data.get('query')
         if not user_query:
-            return Response({'error': 'Query parameter is required.'},
+            return Response({"error": "Query parameter is required."},
                             status=status.HTTP_400_BAD_REQUEST)
-
         try:
-            # Converting the natural-language query into a Django ORM filter dictionary.
-            response = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
-                messages=[
-                    {"role": "system", "content": self.get_system_prompt()},
-                    {"role": "user", "content": user_query}
-                ],
-                temperature=0.0  
+            # generated initial filter
+            first_response = client.responses.create(
+                model="gpt-4o",
+                instructions=self.get_system_prompt(),
+                input=user_query
             )
-
-            generated_filter_str = response.choices[0].message.content.strip()
-
-            # Parsing the generated filter(json).
+            generated_filter_str = first_response.output_text.strip()
             try:
                 filter_dict = json.loads(generated_filter_str)
             except json.JSONDecodeError:
-                return Response(
-                    {
-                        'error': 'Failed to parse the generated filter.',
-                        'generated': generated_filter_str
-                    },
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-
-            # Appling the filter.
-            events = Event.objects.filter(**filter_dict)
-            serializer = EventSerializer(events, many=True, context={'request': request})
-
-            # Return the response
+                return Response({
+                    "error": "Failed to parse initial generated filter logic.",
+                    "generated": generated_filter_str
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # validation and filtering using second agent
+            validator_response = client.responses.create(
+                model="gpt-4o",
+                instructions=self.get_validator_system_prompt(),
+                input=f"User query: {user_query}\nInitial filter: {generated_filter_str}"
+            )
+            validated_filter_str = validator_response.output_text.strip()
+            try:
+                validated_filter_dict = json.loads(validated_filter_str)
+            except json.JSONDecodeError:
+                return Response({
+                    "error": "Failed to parse validated filter logic.",
+                    "generated": validated_filter_str
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # checking unsafe operations
+            if "error" in validated_filter_dict:
+                return Response({
+                    "error": validated_filter_dict["error"]
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+        
+            conversation_data = {
+                "initial_filter": filter_dict,
+                "validated_filter": validated_filter_dict,
+                "conversation": [
+                    {"agent": "generator", "response": generated_filter_str},
+                    {"agent": "validator", "response": validated_filter_str}
+                ]
+            }
+            
+            # execution
+            events = Event.objects.filter(**validated_filter_dict)
+            serializer = EventSerializer(events, many=True, context={"request": request})
+            
             return Response({
-                'user_query': user_query,
-                'generated_filter': filter_dict,
-                'results': serializer.data
+                "user_query": user_query,
+                "initial_filter": filter_dict,
+                "validated_filter": validated_filter_dict,
+                "results": serializer.data
             }, status=status.HTTP_200_OK)
-
+            
         except Exception as e:
-            return Response({'error': str(e)},
+            return Response({"error": str(e)},
                             status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
-# approximate prompt example
+            
     def get_system_prompt(self):
-        return  (
-        "You are a helpful assistant that converts a natural-language query into a Django ORM filter dictionary for filtering Event records. "
-        "The Event model has fields such as id, title, description, city_id, pos_votes, neg_votes, created_by, created_at, etc. "
-        "Events are associated with cities. Use the following city mapping to determine the correct 'city_id': "
-        "Astana: 1, Almaty: 2, Aktau: 3, Aktobe: 4, Shymkent: 5, Karaganda: 6, Pavlodar: 7, Ust-Kamenogorsk: 8, Semey: 9, Taraz: 10. "
-        "Return only the filter dictionary as a valid JSON object without any extra text. "
-        "For example, if the query is 'Show events in Shymkent with more than 10 positive votes', return: "
-        '{"city_id": 5, "pos_votes__gt": 10}'
-    )
-
+        return (
+            "You are a helpful assistant that converts a natural-language query into a Django ORM filter dictionary for filtering Event records. "
+            "The Event model has fields such as id, title, description, city_id, pos_votes, neg_votes, created_by, created_at, etc. "
+            "Events are associated with cities. Use the following city mapping to determine the correct 'city_id': "
+            "Astana: 1, Almaty: 2, Aktau: 3, Aktobe: 4, Shymkent: 5, Karaganda: 6, Pavlodar: 7, Ust-Kamenogorsk: 8, Semey: 9, Taraz: 10. "
+            "Return only the filter dictionary as a valid JSON object without any extra text. "
+            "For example, if the query is 'Show events in Shymkent with more than 10 positive votes', return: "
+            '{"city_id": 5, "pos_votes__gt": 10}'
+        )
+    
+    def get_validator_system_prompt(self):
+        return (
+            "You are a validation agent tasked with reviewing and refining a Django ORM filter dictionary for Event model queries. "
+            "Given a user query and an initial filter dictionary, verify that the filter is correct and safe. Ensure that the filter: "
+            "1. Uses valid fields of the Event model; "
+            "2. Correctly maps city names to their IDs using this mapping: Astana: 1, Almaty: 2, Aktau: 3, Aktobe: 4, Shymkent: 5, "
+            "Karaganda: 6, Pavlodar: 7, Ust-Kamenogorsk: 8, Semey: 9, Taraz: 10; and "
+            "3. Does not include any dangerous or destructive operations such as 'delete', 'drop', 'alter', etc. "
+            "If you detect any attempt to execute harmful operations (for example, if the query includes phrases like 'delete the table'), "
+            "return a JSON object with an 'error' key, e.g., {'error': 'Unsafe operation detected'}; otherwise, return the validated JSON filter dictionary as is. "
+            "Return only the filter dictionary as a valid JSON object."
+        )
