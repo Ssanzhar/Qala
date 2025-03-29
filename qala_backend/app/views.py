@@ -143,26 +143,28 @@ class SmartSearchEventView(APIView):
             return Response({"error": "Query parameter is required."},
                             status=status.HTTP_400_BAD_REQUEST)
         try:
-            first_response = client.responses.create(
+            first_response = client.chat.completions.create(
                 model="gpt-4o",
-                instructions=self.get_system_prompt(),
-                input=user_query
+                messages=[{"role": "system", "content": self.get_system_prompt()},
+                         {"role": "user", "content": user_query}],
+                response_format={"type": "json_object"},
             )
-            generated_response_str = first_response.output_text.strip()
+            generated_response_str = first_response.choices[0].message.content.strip()
             
             try:
                 search_config = json.loads(generated_response_str)
                 filter_dict = search_config.get("filters", {})
                 sort_instructions = search_config.get("sort_by", [])
                 keywords = search_config.get("keywords", [])
-                
+
             except json.JSONDecodeError:
-                corrected_response = client.responses.create(
+                corrected_response = client.chat.complete.create(
                     model="gpt-4o",
-                    instructions="Fix this malformed JSON to be a valid search configuration with 'filters', 'sort_by', and 'keywords' fields:",
-                    input=generated_response_str
+                    messages = [{"role": "system", "content":" Fix this malformed JSON to be a valid search configuration with 'filters', 'sort_by', and 'keywords' fields:"}
+                                , {"role": "user", "content": generated_response_str}],
+                    response_format = {"type": "json_objects"}
                 )
-                corrected_config_str = corrected_response.output_text.strip()
+                corrected_config_str = corrected_response.choices[0].message.content.strip()
                 try:
                     search_config = json.loads(corrected_config_str)
                     filter_dict = search_config.get("filters", {})
@@ -215,7 +217,7 @@ class SmartSearchEventView(APIView):
         
         for event in events:
             score = 0
-            event_text = f"{event.get('title', '')} {event.get('description', '')}"
+            event_text = f"{event.get('name', '')} {event.get('description', '')}"
             event_text = event_text.lower()
             
             for keyword in keywords:
@@ -223,16 +225,16 @@ class SmartSearchEventView(APIView):
                 occurrences = event_text.count(keyword)
                 score += occurrences * 2
                 
-                if keyword in event.get('title', '').lower():
+                if keyword in event.get('name', '').lower():
                     score += 5
             
             pos_votes = event.get('pos_votes', 0)
             score += min(pos_votes / 10, 3)
             
-            if 'created_at' in event:
+            if 'date' in event:
                 try:
                     from datetime import datetime
-                    created_date = datetime.fromisoformat(event['created_at'].replace('Z', '+00:00'))
+                    created_date = datetime.fromisoformat(event['date'].replace('Z', '+00:00'))
                     days_old = (datetime.now() - created_date).days
                     recency_boost = max(0, 2 - (days_old / 30))
                     score += recency_boost
@@ -248,8 +250,8 @@ class SmartSearchEventView(APIView):
     
     def sanitize_filter(self, filter_dict, user_query):
         allowed_fields = {
-            'id', 'title', 'description', 'city_id', 'pos_votes', 'neg_votes', 
-            'created_at', 'created_by', 'created_by_id'
+            'id', 'name', 'description', 'city_id', 'pos_votes', 'neg_votes', 
+            'date', 'created_by', 'created_by_id'
         }
         allowed_lookups = {'__exact', '__contains', '__icontains', '__gt', '__gte', '__lt', '__lte', 
                           '__startswith', '__istartswith', '__endswith', '__iendswith'}
@@ -294,13 +296,13 @@ class SmartSearchEventView(APIView):
             "3. 'keywords': List of important keywords for relevance scoring "
             "\n\nEvent model fields:"
             "\n- id: Integer (primary key)"
-            "\n- title: String (event title)"
+            "\n- name: String (event name)"
             "\n- description: Text (event description)"
             "\n- city_id: Integer (foreign key to City model)"
             "\n- pos_votes: Integer (positive votes count)"
             "\n- neg_votes: Integer (negative votes count)"
             "\n- created_by: ForeignKey to User model"
-            "\n- created_at: DateTime"
+            "\n- date: DateTime"
             "\n\nCity ID mapping:"
             "\n- Astana: 1, Almaty: 2, Aktau: 3, Aktobe: 4, Shymkent: 5"
             "\n- Karaganda: 6, Pavlodar: 7, Ust-Kamenogorsk: 8, Semey: 9, Taraz: 10"
@@ -311,7 +313,7 @@ class SmartSearchEventView(APIView):
             "\n- Contains (case-sensitive): field__contains=value"
             "\n- Contains (case-insensitive): field__icontains=value"
             "\n\nSort fields for 'sort_by':"
-            "\n- 'created_at' (newest first: '-created_at')"
+            "\n- 'date' (newest first: '-date')"
             "\n- 'pos_votes' (most votes first: '-pos_votes')"
             "\n- 'neg_votes' (least negative votes first: 'neg_votes')"
             "\n\nImportant: Return ONLY the JSON without any explanation or additional text."
@@ -319,7 +321,7 @@ class SmartSearchEventView(APIView):
             "\nQuery: 'Events in Almaty with more than 5 positive votes'"
             "\nOutput: {\"filters\": {\"city_id\": 2, \"pos_votes__gt\": 5}, \"sort_by\": [\"-pos_votes\"], \"keywords\": []}"
             "\n\nQuery: 'Find the most popular events related to music in Astana'"
-            "\nOutput: {\"filters\": {\"city_id\": 1, \"title__icontains\": \"music\"}, \"sort_by\": [\"-pos_votes\"], \"keywords\": [\"music\", \"concert\", \"band\", \"performance\"]}"
+            "\nOutput: {\"filters\": {\"city_id\": 1, \"name__icontains\": \"music\"}, \"sort_by\": [\"-pos_votes\"], \"keywords\": [\"music\", \"concert\", \"band\", \"performance\"]}"
             "\n\nQuery: 'The most relevant problems related to air pollution'"
-            "\nOutput: {\"filters\": {\"title__icontains\": \"pollution\"}, \"sort_by\": [\"-pos_votes\"], \"keywords\": [\"air pollution\", \"pollution\", \"air quality\", \"environment\", \"health\"]}"
+            "\nOutput: {\"filters\": {\"name__icontains\": \"pollution\"}, \"sort_by\": [\"-pos_votes\"], \"keywords\": [\"air pollution\", \"pollution\", \"air quality\", \"environment\", \"health\"]}"
         )
