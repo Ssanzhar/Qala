@@ -1,5 +1,5 @@
 # Qala
-
+team **ss**
 ## 🏙️ Introduction
 
 **Qala** is a citizen-centric web platform designed to empower Kazakhstan’s city communities to report, track, and discuss local issues. Through an interactive map interface, users can visualize reported problems in their neighborhoods. The platform enables issue ranking via upvotes/downvotes, encouraging collaborative prioritization of community needs.
