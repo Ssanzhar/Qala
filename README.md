@@ -23,7 +23,7 @@ For detailed documentation, refer to the [Project's documentation](https://docs.
 ## 🗂️ Project Structure
 
 ```
-infomatrix.ss.final/
+qala/
 │-- qala_frontend/     # React frontend application
 │-- qala_backend/      # Django backend with REST API
 │-- .gitignore         # Git ignore rules
