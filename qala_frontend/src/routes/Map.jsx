@@ -220,8 +220,8 @@ const MapWithForm = () => {
               icon={customIcon}
             >
               <Popup>
-                <Typography variant="h6">Name: {marker.name}</Typography>
-                <Typography variant="body2">
+                <Typography variant="h6" sx={{color: "text.primary"}}>Name: {marker.name}</Typography>
+                <Typography variant="body2" color="text.primary">
                   Description: {marker.description}
                 </Typography>
                 {marker.image && (
@@ -236,13 +236,13 @@ const MapWithForm = () => {
                   <IconButton aria-label="like">
                     <ThumbUpIcon />
                   </IconButton>
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography variant="body2" color="text.primary">
                     {marker.pos_votes}
                   </Typography>
                   <IconButton aria-label="dislike">
                     <ThumbDownIcon />
                   </IconButton>
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography variant="body2" color="text.primary">
                     {marker.neg_votes}
                   </Typography>
                 </Box>
@@ -276,7 +276,7 @@ const MapWithForm = () => {
               value={formData.name}
               onChange={handleInputChange}
               required
-              sx={{ mb: 2 }}
+              sx={{ mb: 2, '& .MuiInputLabel-root': { color: 'text.primary' } }}
             />
             <TextField
               label="Description"
@@ -287,7 +287,7 @@ const MapWithForm = () => {
               value={formData.description}
               onChange={handleInputChange}
               required
-              sx={{ mb: 2 }}
+              sx={{ mb: 2, '& .MuiInputLabel-root': { color: 'text.primary' } }}
             />
             <Button variant="contained" component="label" sx={{ mb: 2 }}>
               Upload Image
