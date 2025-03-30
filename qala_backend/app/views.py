@@ -133,7 +133,6 @@ class UserView(APIView):
 
 # Smart Search Implementation
 client = OpenAI(api_key=settings.OPENAI_API_KEY)
-
 class SmartSearchEventView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
@@ -156,13 +155,14 @@ class SmartSearchEventView(APIView):
                 filter_dict = search_config.get("filters", {})
                 sort_instructions = search_config.get("sort_by", [])
                 keywords = search_config.get("keywords", [])
+                synonyms = search_config.get("synonyms", [])
 
             except json.JSONDecodeError:
-                corrected_response = client.chat.complete.create(
+                corrected_response = client.chat.completions.create(
                     model="gpt-4o",
-                    messages = [{"role": "system", "content":" Fix this malformed JSON to be a valid search configuration with 'filters', 'sort_by', and 'keywords' fields:"}
+                    messages = [{"role": "system", "content": "Fix this malformed JSON to be a valid search configuration with 'filters', 'sort_by', 'keywords', and 'synonyms' fields:"}
                                 , {"role": "user", "content": generated_response_str}],
-                    response_format = {"type": "json_objects"}
+                    response_format = {"type": "json_object"}
                 )
                 corrected_config_str = corrected_response.choices[0].message.content.strip()
                 try:
@@ -170,6 +170,7 @@ class SmartSearchEventView(APIView):
                     filter_dict = search_config.get("filters", {})
                     sort_instructions = search_config.get("sort_by", [])
                     keywords = search_config.get("keywords", [])
+                    synonyms = search_config.get("synonyms", [])
                 except json.JSONDecodeError:
                     return Response({
                         "error": "Failed to parse search configuration.",
@@ -177,22 +178,53 @@ class SmartSearchEventView(APIView):
                         "attempted_correction": corrected_config_str
                     }, status=status.HTTP_400_BAD_REQUEST)
             
+            events = []
+            
             sanitized_filter = self.sanitize_filter(filter_dict, user_query)
             
-            if "error" in sanitized_filter:
+            if "error" in sanitized_filter and sanitized_filter["error"] != "No valid filter parameters found":
                 return Response({
                     "error": sanitized_filter["error"]
                 }, status=status.HTTP_400_BAD_REQUEST)
             
-            events = Event.objects.filter(**sanitized_filter)
+            if sanitized_filter and "error" not in sanitized_filter:
+                primary_events = Event.objects.filter(**sanitized_filter)
+                
+                if sort_instructions:
+                    primary_events = primary_events.order_by(*sort_instructions)
+                
+                events.extend(list(primary_events))
             
-            if sort_instructions:
-                events = events.order_by(*sort_instructions)
+            from django.db.models import Q
             
-            serialized_events = EventSerializer(events, many=True, context={"request": request}).data
+            fallback_query = Q()
+            search_terms = keywords + synonyms + [user_query]
             
-            if keywords:
-                scored_events = self.score_events_by_relevance(serialized_events, keywords, user_query)
+            search_terms = list(set(filter(None, search_terms)))
+            
+            for term in search_terms:
+                fallback_query |= Q(name__icontains=term) | Q(description__icontains=term)
+            
+            if 'city_id' in filter_dict:
+                fallback_query &= Q(city_id=sanitized_filter.get('city_id', filter_dict['city_id']))
+            
+            fallback_events = Event.objects.filter(fallback_query)
+            
+            combined_events = list(events)
+            for event in fallback_events:
+                if event not in combined_events:
+                    combined_events.append(event)
+            
+            if sort_instructions and combined_events:
+                if combined_events and not isinstance(combined_events[0], dict):
+                    event_ids = [event.id for event in combined_events]
+                    combined_events = Event.objects.filter(id__in=event_ids).order_by(*sort_instructions)
+            
+            serialized_events = EventSerializer(combined_events, many=True, context={"request": request}).data
+            
+            all_terms = keywords + synonyms
+            if all_terms:
+                scored_events = self.score_events_by_relevance(serialized_events, all_terms, user_query)
                 sorted_events = sorted(scored_events, key=lambda x: x['relevance_score'], reverse=True)
             else:
                 sorted_events = [{'event': event, 'relevance_score': 0} for event in serialized_events]
@@ -201,9 +233,10 @@ class SmartSearchEventView(APIView):
             
             return Response({
                 "user_query": user_query,
-                "filter_applied": sanitized_filter,
+                "filter_applied": sanitized_filter if "error" not in sanitized_filter else {},
                 "sort_applied": sort_instructions,
                 "keywords": keywords,
+                "synonyms": synonyms,
                 "results": result_events,
                 "result_count": len(result_events)
             }, status=status.HTTP_200_OK)
@@ -215,15 +248,25 @@ class SmartSearchEventView(APIView):
     def score_events_by_relevance(self, events, keywords, original_query):
         scored_events = []
         
+        search_terms = keywords + [term.strip() for term in original_query.lower().split()]
+        search_terms = list(set(search_terms))
+        
         for event in events:
             score = 0
             event_text = f"{event.get('name', '')} {event.get('description', '')}"
             event_text = event_text.lower()
             
-            for keyword in keywords:
+            for keyword in search_terms:
                 keyword = keyword.lower()
-                occurrences = event_text.count(keyword)
-                score += occurrences * 2
+                if keyword in event_text:
+                    occurrences = event_text.count(keyword)
+                    score += occurrences * 2
+                
+                event_words = set(event_text.split())
+                for word in event_words:
+                    if keyword in word or word in keyword:
+                        similarity_ratio = min(len(keyword), len(word)) / max(len(keyword), len(word))
+                        score += similarity_ratio
                 
                 if keyword in event.get('name', '').lower():
                     score += 5
@@ -240,6 +283,9 @@ class SmartSearchEventView(APIView):
                     score += recency_boost
                 except (ValueError, TypeError):
                     pass
+            
+            if original_query.lower() in event_text:
+                score += 10
             
             scored_events.append({
                 'event': event,
@@ -290,10 +336,11 @@ class SmartSearchEventView(APIView):
     def get_system_prompt(self):
         return (
             "You are a specialized assistant that converts natural language queries into search configurations for the Event model. "
-            "Your task is to analyze the user's query and return a JSON object containing three components: "
+            "Your task is to analyze the user's query and return a JSON object containing four components: "
             "1. 'filters': Django ORM filter dictionary for initial filtering "
             "2. 'sort_by': List of fields to sort by (with - prefix for descending) "
             "3. 'keywords': List of important keywords for relevance scoring "
+            "4. 'synonyms': List of synonyms and related words for the keywords to broaden the search"
             "\n\nEvent model fields:"
             "\n- id: Integer (primary key)"
             "\n- name: String (event name)"
@@ -316,12 +363,19 @@ class SmartSearchEventView(APIView):
             "\n- 'date' (newest first: '-date')"
             "\n- 'pos_votes' (most votes first: '-pos_votes')"
             "\n- 'neg_votes' (least negative votes first: 'neg_votes')"
-            "\n\nImportant: Return ONLY the JSON without any explanation or additional text."
+            "\n\nImportant: For better recall, use fewer restrictive filters and provide more keywords and synonyms. "
+            "The search system will use a fallback mechanism to find relevant results even when exact matches aren't found. "
+            "Think broadly about related terms - for example, 'trash' should include synonyms like 'garbage', 'waste', 'litter', etc."
+            "\n\nReturn ONLY the JSON without any explanation or additional text."
             "\n\nExamples:"
             "\nQuery: 'Events in Almaty with more than 5 positive votes'"
-            "\nOutput: {\"filters\": {\"city_id\": 2, \"pos_votes__gt\": 5}, \"sort_by\": [\"-pos_votes\"], \"keywords\": []}"
+            "\nOutput: {\"filters\": {\"city_id\": 2, \"pos_votes__gt\": 5}, \"sort_by\": [\"-pos_votes\"], \"keywords\": [\"popular\", \"voted\"], \"synonyms\": []}"
             "\n\nQuery: 'Find the most popular events related to music in Astana'"
-            "\nOutput: {\"filters\": {\"city_id\": 1, \"name__icontains\": \"music\"}, \"sort_by\": [\"-pos_votes\"], \"keywords\": [\"music\", \"concert\", \"band\", \"performance\"]}"
+            "\nOutput: {\"filters\": {\"city_id\": 1}, \"sort_by\": [\"-pos_votes\"], \"keywords\": [\"music\", \"concert\"], \"synonyms\": [\"band\", \"performance\", \"song\", \"singer\", \"musician\", \"show\", \"festival\"]}"
             "\n\nQuery: 'The most relevant problems related to air pollution'"
-            "\nOutput: {\"filters\": {\"name__icontains\": \"pollution\"}, \"sort_by\": [\"-pos_votes\"], \"keywords\": [\"air pollution\", \"pollution\", \"air quality\", \"environment\", \"health\"]}"
+            "\nOutput: {\"filters\": {}, \"sort_by\": [\"-pos_votes\"], \"keywords\": [\"air pollution\", \"pollution\"], \"synonyms\": [\"air quality\", \"environment\", \"smog\", \"emissions\", \"fumes\", \"contaminants\", \"health\"]}"
+            "\n\nQuery: 'trash'"
+            "\nOutput: {\"filters\": {}, \"sort_by\": [\"-pos_votes\"], \"keywords\": [\"trash\"], \"synonyms\": [\"garbage\", \"waste\", \"litter\", \"rubbish\", \"junk\", \"debris\", \"refuse\", \"trashes\"]}"
         )
+
+
