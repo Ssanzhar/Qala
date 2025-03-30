@@ -25,7 +25,6 @@ const userAccount = {
 const AccountDashboard = () => {
   const [user, setUser] = useState(userAccount);
   const [eventsData, setEventsData] = useState([]);
-  const [newData, setNewData] = useState(data);
   const { access, logout } = useAuth() || {};
   
   const getUserEvents = async () => {
@@ -119,10 +118,10 @@ const AccountDashboard = () => {
                     primary={`Title: ${event.name}`}
                     secondary={
                       <>
-                        <Typography variant="body2">
+                        <Typography variant="body2" color="text.primary">
                           Location: lat: {event.latitude}, lon: {event.longitude}, city: {Object.entries(data).find(([key, value]) => value.id === event.city)?.[0]}
                         </Typography>
-                        <Typography variant="body2">
+                        <Typography variant="body2" color="text.primary">
                           Upvotes: {event.pos_votes} | Downvotes: {event.neg_votes}
                         </Typography>
                       </>
