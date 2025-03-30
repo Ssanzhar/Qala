@@ -50,14 +50,6 @@ const NavBar = () => {
         elevation={1}
       >
         <Toolbar>
-          {/* <Box
-            component="img"
-            src={logo}
-            sx={{ height: "90px" }}
-            onClick={() => {
-              navigate("/");
-            }}
-          ></Box> */}
           <Typography
             variant="h6"
             component={Link}
@@ -101,14 +93,14 @@ const NavBar = () => {
                   },
                 }}
               >
-                <MenuItem value="" sx={{ color: "text.secondary" }}>
+                <MenuItem value="" sx={{ color: "text.primary" }}>
                   <em>None</em>
                 </MenuItem>
                 {cities.map((el) => (
                   <MenuItem
                     value={el}
                     key={el}
-                    sx={{ color: "text.secondary" }}
+                    sx={{ color: "text.primary" }}
                   >
                     {el}
                   </MenuItem>
@@ -134,7 +126,7 @@ const NavBar = () => {
                 <Button
                   component={Link}
                   to="/profile"
-                  sx={{ color: "text.primary" }}
+                  sx={{ color: "text.primary", textTransform: "none" }}
                 >
                   Profile
                 </Button>

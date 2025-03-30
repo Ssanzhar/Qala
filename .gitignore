@@ -1,29 +1,47 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 .env
-# dependencies
-/qala_frontend/node_modules
-/.pnp
-.pnp.js
-
-# testing
-/coverage
-
-# production
-/build
-
-# misc
-.DS_Store
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
 
-npm-debug.log*
+
+/venv/
+/.venv/
+
+/qala_frontend/node_modules
+/.pnp
+.pnp.js
+
+
+pycache/
+*.pyc
+*.pyo
+.pyd
+
+
+/db.sqlite3
+/db.sqlite3-journal
+db.sqlite3
+
+
+npm-debug.log
 yarn-debug.log*
 yarn-error.log*
 
-__pycache__/
-*.pyc
-db.sqlite3
-.env
+
+/coverage/
+/pytest_cache/
+
+
+/build/
+/staticfiles/
+qala_backend/media/
+
+
 .DS_Store
+
+Misc
+.vscode/
+.idea/
+*.log
+*.pid

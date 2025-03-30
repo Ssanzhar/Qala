@@ -17,7 +17,6 @@ import { GlobalContext } from "../context/GlobalContext";
 import { useAuth } from "../context/AuthProvider";
 import { data } from "../data/data";
 import SearchIcon from "@mui/icons-material/Search";
-import Input from "../components/Input";
 
 export default function Events() {
   const { city } = useContext(GlobalContext);
@@ -25,6 +24,26 @@ export default function Events() {
   const [events, setEvents] = useState([]);
   const [sortBy, setSortBy] = useState("Smart Search");
   const [searchQuery, setSearchQuery] = useState("");
+
+  const handleSmartSearch = async () => {
+    try {
+      const response = await fetch("http://127.0.0.1:8000/api/smart-search/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${access}`,
+        },
+        body: JSON.stringify({ query: searchQuery }),
+      });
+      const result = await response.json();
+      const arr = result['results'];
+      setEvents(arr);
+      console.log(events)
+    } catch (error) {
+      console.error("Smart search failed:", error);
+    }
+  };
+
 
   const handleSortChange = (event) => {
     setSortBy(event.target.value);
@@ -69,7 +88,7 @@ export default function Events() {
 
   const getEventsByPopularity = async () => {
     try {
-      const response = await fetch(
+      const response = await fetch( 
         `http://127.0.0.1:8000/api/sorted-by-votes/?city_id=${
           city ? data[city].id : 2
         }`,
@@ -108,11 +127,11 @@ export default function Events() {
     }
   }, [access, city, data, sortBy]);
 
-  const filteredEvents = events.filter(
-    (event) =>
-      event.name.toLowerCase().includes(searchQuery) ||
-      event.description.toLowerCase().includes(searchQuery)
-  );
+  // const filteredEvents = events.filter(
+  //   (event) =>
+  //     event.name.toLowerCase().includes(searchQuery) ||
+  //     event.description.toLowerCase().includes(searchQuery)
+  // );
 
   return (
     <ThemeProvider theme={theme}>
@@ -122,6 +141,7 @@ export default function Events() {
           mt: 2,
           ml: 5,
           display: "flex",
+          flexDirection: "column",
         }}
       >
         <Box
@@ -130,30 +150,28 @@ export default function Events() {
             display: "flex",
             gap: 2,
             alignItems: "center",
+            flexDirection: 'row'
           }}
         >
-          <Paper
-            component="form"
-            sx={{
-              p: "2px 4px",
-              display: "flex",
-              alignItems: "center",
-              width: "50vh",
-              borderRadius: "16px",
-            }}
-          >
-            <SearchIcon
-              sx={{ p: 1, color: "action.active" }}
-              fontSize="large"
-            />
-            <InputBase
-              sx={{ ml: 1, flex: 1 }}
-              placeholder="Search events..."
-              inputProps={{ "aria-label": "search events" }}
-              value={searchQuery}
-              onChange={handleSearchChange}
-            />
-          </Paper>
+          {sortBy === "Smart Search" && (
+            <Paper
+              component="form"
+              sx={{ p: "2px 4px", display: "flex", alignItems: "center", width: "50vh", borderRadius: "16px" }}
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleSmartSearch();
+              }}
+            >
+              <SearchIcon sx={{ p: 1, color: "action.active" }} fontSize="large" />
+              <InputBase
+                sx={{ ml: 1, flex: 1 }}
+                placeholder="Search events..."
+                inputProps={{ "aria-label": "search events" }}
+                value={searchQuery}
+                onChange={handleSearchChange}
+              />
+            </Paper>
+          )}
           <FormControl
             sx={{
               minWidth: 200,
@@ -186,9 +204,9 @@ export default function Events() {
             </Select>
           </FormControl>
         </Box>
-        {/* <Box>
-          {filteredEvents.length > 0 ? (
-            filteredEvents.map((event) => (
+        <Box sx={{display: 'flex', flexDirection: 'row'}}>
+          {events.length > 0 ? (
+            events.map((event) => (
               <EventCard
                 key={event.id}
                 id={event.id}
@@ -206,8 +224,9 @@ export default function Events() {
           ) : (
             <p>No events found for the selected city.</p>
           )}
-        </Box> */}
+        </Box>
       </Container>
     </ThemeProvider>
   );
 }
+
