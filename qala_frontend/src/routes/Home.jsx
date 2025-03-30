@@ -5,31 +5,12 @@ import {
   Container,
   CssBaseline,
   Grid,
-  IconButton,
   Paper,
   ThemeProvider,
   Typography,
 } from "@mui/material";
-import LightbulbOutlinedIcon from "@mui/icons-material/LightbulbOutlined";
-import ShareOutlinedIcon from "@mui/icons-material/ShareOutlined";
-import VerifiedUserOutlinedIcon from "@mui/icons-material/VerifiedUserOutlined";
-import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
-import RadioButtonCheckedIcon from "@mui/icons-material/RadioButtonChecked";
 import { theme } from "../components/theme";
 import { useNavigate } from "react-router-dom";
-import BookIcon from "@mui/icons-material/Book";
-import BusinessCenterIcon from "@mui/icons-material/BusinessCenter";
-import ImageIcon from "@mui/icons-material/Image";
-import CheckIcon from "@mui/icons-material/Check";
-
-const FeatureItem = ({ icon, text }) => (
-  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-    {icon}
-    <Typography variant="body1" color="text.primary">
-      {text}
-    </Typography>
-  </Box>
-);
 
 export default function Home() {
   const navigate = useNavigate();
@@ -134,7 +115,7 @@ export default function Home() {
                     height: "100%",
                   }}
                 >
-                  <h1>&#128498;</h1>
+                  <h1>&#128269;</h1>
                   <Typography
                     variant="h6"
                     component="h2"
@@ -143,7 +124,7 @@ export default function Home() {
                     Report Accidents & Issues
                   </Typography>
                   <Typography variant="body1" color="text.primary">
-                    &#128221;Add a title, description, and images to provide
+                    &#128221; Add a title, description, and images to provide
                     details.
                   </Typography>
                 </Box>
@@ -168,7 +149,7 @@ export default function Home() {
                     Community Engagement
                   </Typography>
                   <Typography variant="body1" color="text.primary">
-                    &#128077;Vote on issues to highlight importance.
+                    &#128077; Vote on issues to highlight importance.
                   </Typography>
                 </Box>
               </Card>
@@ -192,7 +173,7 @@ export default function Home() {
                     Verification & Trust
                   </Typography>
                   <Typography variant="body1" color="text.primary">
-                    &#127919;Verify achievements, certificates, and account
+                  &#128272; Admin-approved incident verification.
                     status.
                   </Typography>
                 </Box>
